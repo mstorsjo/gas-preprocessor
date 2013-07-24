@@ -663,7 +663,7 @@ sub handle_serialized_line {
     $thumb = 0 if $line =~ /\.code\s+32|\.arm/;
 
     # handle ldr <reg>, =<expr>
-    if ($line =~ /(.*)\s*ldr([\w\s\d]+)\s*,\s*=(.*)/ and $as_type ne "armasm") {
+    if ($line =~ /(.*)\s*ldr([\w\s\d]+)\s*,\s*=(.*)/ and $as_type !~ /^(armasm|gas)/) {
         my $label = $literal_labels{$3};
         if (!$label) {
             $label = "Literal_$literal_num";
@@ -671,7 +671,7 @@ sub handle_serialized_line {
             $literal_labels{$3} = $label;
         }
         $line = "$1 ldr$2, $label\n";
-    } elsif ($line =~ /\.ltorg/ and $as_type ne "armasm") {
+    } elsif ($line =~ /\.ltorg/ and $as_type !~ /^(armasm|gas)/) {
         $line .= ".align 2\n";
         foreach my $literal (keys %literal_labels) {
             $line .= "$literal_labels{$literal}:\n $literal_expr $literal\n";
@@ -995,7 +995,7 @@ sub handle_serialized_line {
     print ASMFILE $line;
 }
 
-if ($as_type ne "armasm") {
+if ($as_type !~ /^(armasm|gas)/) {
     print ASMFILE ".text\n";
     print ASMFILE ".align 2\n";
     foreach my $literal (keys %literal_labels) {
@@ -1004,7 +1004,7 @@ if ($as_type ne "armasm") {
 
     map print(ASMFILE ".thumb_func $_\n"),
         grep exists $thumb_labels{$_}, keys %call_targets;
-} else {
+} elsif ($as_type eq "armasm") {
     map print(ASMFILE "\tIMPORT $_\n"),
         grep ! exists $labels_seen{$_}, (keys %call_targets, keys %mov32_targets);
 
