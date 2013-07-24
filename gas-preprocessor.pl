@@ -692,7 +692,7 @@ sub handle_serialized_line {
     }
 
     # mach-o local symbol names start with L (no dot)
-    $line =~ s/(?<!\w)\.(L\w+)/$1/g;
+    $line =~ s/(?<!\w)\.(L\w+)/$1/g if ($as_type ne "gas");
 
     # recycle the '.func' directive for '.thumb_func'
     if ($thumb and $as_type =~ /^apple-/) {
