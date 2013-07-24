@@ -687,7 +687,7 @@ sub handle_serialized_line {
     }
 
     # thumb add with large immediate needs explicit add.w
-    if ($thumb and $line =~ /add\s+.*#([^@]+)/) {
+    if ($thumb and $line =~ /add\s+.*#([^@]+)/ and $as_type ne "gas") {
         $line =~ s/add/add.w/ if eval_expr($1) > 255;
     }
 
