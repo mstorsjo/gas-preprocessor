@@ -131,6 +131,11 @@ if ($as_type eq "armasm") {
     }
 }
 
+if (grep /^-MM$/, @preprocess_c_cmd) {
+    system(@preprocess_c_cmd) == 0 or die "Error running preprocessor";
+    exit 0;
+}
+
 # if compiling, avoid creating an output file named '-.o'
 if ((grep /^-c$/, @gcc_cmd) && !(grep /^-o/, @gcc_cmd)) {
     foreach my $i (@gcc_cmd) {
