@@ -27,6 +27,7 @@ my $as_type = "apple-gas";
 
 my $fix_unreq = $^O eq "darwin";
 my $force_thumb = 0;
+my $add_prefix = 0;
 
 my $arm_cond_codes = "eq|ne|cs|cc|mi|pl|vs|vc|hi|ls|ge|lt|gt|le|al|hs|lo";
 
@@ -48,6 +49,7 @@ command. Following options are currently supported:
     -force-thumb  - assemble as thumb regardless of the input source
                     (note, this is incomplete and only works for sources
                     it explicitly was tested with)
+    -add-prefix   - automatically add underscore symbol prefixes
 ";
 
 sub usage() {
@@ -61,6 +63,8 @@ while (@ARGV) {
         $fix_unreq = $1 ne "no-";
     } elsif ($opt eq "-force-thumb") {
         $force_thumb = 1;
+    } elsif ($opt eq "-add-prefix") {
+        $add_prefix = 1;
     } elsif ($opt eq "-arch") {
         $arch = shift;
         die "unknown arch: '$arch'\n" if not exists $comments{$arch};
@@ -245,6 +249,9 @@ my %next_temp_labels;
 my %labels_seen;
 
 my %aarch64_req_alias;
+
+my %func_add_prefix;
+my @pass3_lines;
 
 if ($force_thumb) {
     parse_line(".thumb\n");
@@ -679,15 +686,24 @@ sub handle_serialized_line {
     }
 
     if ($as_type =~ /^apple-/ and
-        $line =~ /^\s*((\w+\s*:\s*)?bl?x?(..)?(?:\.w)?|\.global)\s+(\w+)/) {
+        $line =~ /^\s*((\w+\s*:\s*)?bl?x?(..)?(?:\.w)?|\.global|\.indirect_symbol)\s+(\w+)/) {
         my $cond = $3;
         my $label = $4;
         # Don't interpret e.g. bic as b<cc> with ic as conditional code
         if ($cond =~ /|$arm_cond_codes/) {
-            if (exists $thumb_labels{$label}) {
-                print ASMFILE ".thumb_func $label\n";
-            } else {
-                $call_targets{$label}++;
+            if ($1 ne ".indirect_symbol") {
+                if (exists $thumb_labels{$label}) {
+                    print ASMFILE ".thumb_func $label\n";
+                } else {
+                    $call_targets{$label}++;
+                }
+            }
+            if ($add_prefix) {
+                if ($label =~ /^[a-zA-Z]\w*/ && # Label starts with a letter
+                    $label ne "lr" && $label ne "ip" && $label !~ /^[rva]\d+/ && # Label isn't a register
+                    $label !~ /^\.L/) { # Label isn't a local symbol
+                    $func_add_prefix{$label}++;
+                }
             }
         }
     }
@@ -972,6 +988,18 @@ sub handle_serialized_line {
     # catch unknown section names that aren't mach-o style (with a comma)
     if ($as_type =~ /apple-/ and $line =~ /.section ([^,]*)$/) {
         die ".section $1 unsupported; figure out the mach-o section name and add it";
+    }
+
+    push(@pass3_lines, $line);
+}
+
+foreach my $line (@pass3_lines) {
+
+    if ($add_prefix) {
+        foreach (keys %func_add_prefix) {
+            my $func = $_;
+            $line =~ s/\b$func\b/_$func/g;
+        }
     }
 
     print ASMFILE $line;
