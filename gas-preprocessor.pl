@@ -669,9 +669,6 @@ sub handle_serialized_line {
         $line =~ s/add/add.w/ if eval_expr($1) > 255;
     }
 
-    # mach-o local symbol names start with L (no dot)
-    $line =~ s/(?<!\w)\.(L\w+)/$1/g;
-
     # recycle the '.func' directive for '.thumb_func'
     if ($thumb and $as_type =~ /^apple-/) {
         $line =~ s/\.func/.thumb_func/x;
@@ -694,6 +691,9 @@ sub handle_serialized_line {
             }
         }
     }
+
+    # mach-o local symbol names start with L (no dot)
+    $line =~ s/(?<!\w)\.(L\w+)/$1/g;
 
     # @l -> lo16()  @ha -> ha16()
     $line =~ s/,\s+([^,]+)\@l\b/, lo16($1)/g;
