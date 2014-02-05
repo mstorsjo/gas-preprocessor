@@ -356,6 +356,15 @@ sub parse_line {
     # syntax, but since the line numbers are off they are only misleading.
     $line =~ s/^#\s+(\d+).*//          if $as_type =~ /armasm/;
 
+    if ($line =~ /.include\s+"(.*)"/) {
+        open(my $file, "<", $1) || die "Include not found";
+        while (<$file>) {
+            parse_line($_);
+        }
+        close($file);
+        return;
+    }
+
     return if (parse_if_line($line));
 
     if (scalar(@rept_lines) == 0) {
