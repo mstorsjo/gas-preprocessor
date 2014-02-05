@@ -261,14 +261,6 @@ if ($force_thumb) {
 # note that the handling of arguments is probably overly permissive vs. gas
 # but it should be the same for valid cases
 while (<INPUT>) {
-    # remove all comments (to avoid interfering with evaluating directives)
-    s/(?<!\\)$inputcomm.*//x;
-    # Strip out windows linefeeds
-    s/\r$//;
-    # Strip out line number comments - armasm can handle them in a separate
-    # syntax, but since the line numbers are off they are only misleading.
-    s/^#\s+(\d+).*//          if $as_type =~ /armasm/;
-
     parse_line($_);
 }
 
@@ -355,6 +347,14 @@ sub parse_if_line {
 
 sub parse_line {
     my $line = $_[0];
+
+    # remove all comments (to avoid interfering with evaluating directives)
+    $line =~ s/(?<!\\)$inputcomm.*//x;
+    # Strip out windows linefeeds
+    $line =~ s/\r$//;
+    # Strip out line number comments - armasm can handle them in a separate
+    # syntax, but since the line numbers are off they are only misleading.
+    $line =~ s/^#\s+(\d+).*//          if $as_type =~ /armasm/;
 
     return if (parse_if_line($line));
 
