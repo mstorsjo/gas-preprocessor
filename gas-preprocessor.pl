@@ -951,6 +951,7 @@ sub handle_serialized_line {
     }
 
     # comment out unsupported directives
+    $line =~ s/\.type.*;//x            if $as_type =~ /^apple-/;
     $line =~ s/\.type/$comm$&/x        if $as_type =~ /^(apple-|armasm)/;
     $line =~ s/\.func/$comm$&/x        if $as_type =~ /^(apple-|clang)/;
     $line =~ s/\.endfunc/$comm$&/x     if $as_type =~ /^(apple-|clang)/;
