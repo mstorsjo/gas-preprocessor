@@ -277,7 +277,7 @@ sub handle_if {
     my $line = $_[0];
     # handle .if directives; apple's assembler doesn't support important non-basic ones
     # evaluating them is also needed to handle recursive macros
-    if ($line =~ /\.if(n?)([a-z]*)\s+(.*)/) {
+    if ($line =~ /^\s*.if(n?)([a-z]*)\s+(.*)/) {
         my $result = $1 eq "n";
         my $type   = $2;
         my $expr   = $3;
