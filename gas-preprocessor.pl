@@ -35,7 +35,7 @@ my $usage_str = "
 $0\n
 Gas-preprocessor.pl converts assembler files using modern GNU as syntax for
 Apple's ancient gas version or clang's incompatible integrated assembler. The
-conversion is regularly tested for Libav, x264 and vlc. Other projects might
+conversion is regularly tested for FFmpeg, Libav, x264 and vlc. Other projects might
 use different features which are not correctly handled.
 
 Options for this program needs to be separated with ' -- ' from the assembler
