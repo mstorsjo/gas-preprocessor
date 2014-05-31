@@ -18,7 +18,6 @@ my %comments = ("aarch64" => '//',
                 "arm"     => '@',
                 "powerpc" => '#');
 
-my @options;
 my @gcc_cmd;
 my @preprocess_c_cmd;
 
@@ -57,44 +56,28 @@ sub usage() {
 
 while (@ARGV) {
     my $opt = shift;
-    last if ($opt =~ /^--$/);
-    push @options, $opt;
-}
-if (@ARGV) {
-    @gcc_cmd = @ARGV;
-} else {
-    @gcc_cmd = @options;
-    @options = ();
 
-    # backward compatible handling
-    if ($gcc_cmd[0] eq "-fix-unreq") {
-        $fix_unreq = 1;
-        shift @gcc_cmd;
-    } elsif ($gcc_cmd[0] eq "-no-fix-unreq") {
-        $fix_unreq = 0;
-        shift @gcc_cmd;
-    }
-}
-
-while (@options) {
-    my $opt = shift @options;
     if ($opt =~ /^-(no-)?fix-unreq$/) {
         $fix_unreq = $1 ne "no-";
     } elsif ($opt eq "-force-thumb") {
         $force_thumb = 1;
     } elsif ($opt eq "-arch") {
-        $arch = shift @options;
+        $arch = shift;
         die "unknown arch: '$arch'\n" if not exists $comments{$arch};
     } elsif ($opt eq "-as-type") {
-        $as_type = shift @options;
+        $as_type = shift;
         die "unknown as type: '$as_type'\n" if $as_type !~ /^((apple-)?(gas|clang)|armasm)$/;
     } elsif ($opt eq "-help") {
         usage();
         exit 0;
+    } elsif ($opt eq "--" ) {
+	@gcc_cmd = @ARGV;
+    } elsif ($opt =~ /^-/) {
+        die "option '$opt' is not known. See '$0 -help' for usage information\n";
     } else {
-        usage();
-        die "option '$opt' is not known\n";
+	push @gcc_cmd, $opt, @ARGV;
     }
+    last if (@gcc_cmd);
 }
 
 if (grep /\.c$/, @gcc_cmd) {
@@ -143,7 +126,17 @@ if ((grep /^-c$/, @gcc_cmd) && !(grep /^-o/, @gcc_cmd)) {
         }
     }
 }
-@preprocess_c_cmd = map { /\.(o|obj)$/ ? "-" : $_ } @preprocess_c_cmd;
+# replace only the '-o' argument with '-', avoids rewriting the make dependency
+# target specified with -MT to '-'
+my $index = 1;
+while ($index < $#preprocess_c_cmd) {
+    if ($preprocess_c_cmd[$index] eq "-o") {
+        $index++;
+        $preprocess_c_cmd[$index] = "-";
+    }
+    $index++;
+}
+
 my $tempfile;
 if ($as_type ne "armasm") {
     @gcc_cmd = map { /\.[csS]$/ ? qw(-x assembler -) : $_ } @gcc_cmd;
@@ -221,6 +214,7 @@ if ($ENV{GASPP_DEBUG}) {
 
 my $current_macro = '';
 my $macro_level = 0;
+my $rept_level = 0;
 my %macro_lines;
 my %macro_args;
 my %macro_args_default;
@@ -384,9 +378,17 @@ sub parse_line {
         }
     }
 
+    if ($macro_level == 0) {
+        if ($line =~ /\.(rept|irp)/) {
+            $rept_level++;
+        } elsif ($line =~ /.endr/) {
+            $rept_level--;
+        }
+    }
+
     if ($macro_level > 1) {
         push(@{$macro_lines{$current_macro}}, $line);
-    } elsif (scalar(@rept_lines) and $line !~ /\.endr/) {
+    } elsif (scalar(@rept_lines) and $rept_level >= 1) {
         push(@rept_lines, $line);
     } elsif ($macro_level == 0) {
         expand_macros($line);
@@ -591,6 +593,11 @@ sub expand_macros {
             foreach (reverse sort {length $a <=> length $b} keys %replacements) {
                 $macro_line =~ s/\\$_/$replacements{$_}/g;
             }
+            if ($altmacro) {
+                foreach (reverse sort {length $a <=> length $b} keys %replacements) {
+                    $macro_line =~ s/\b$_\b/$replacements{$_}/g;
+                }
+            }
             $macro_line =~ s/\\\@/$count/g;
             $macro_line =~ s/\\\(\)//g;     # remove \()
             parse_line($macro_line);
@@ -661,9 +668,9 @@ sub handle_serialized_line {
     }
 
     # handle GNU as pc-relative relocations for adrp/add
-    if ($line =~ /(.*)\s*adrp([\w\s\d]+)\s*,\s*#:pg_hi21:([^\s]+)/) {
+    if ($line =~ /(.*)\s*adrp([\w\s\d]+)\s*,\s*#?:pg_hi21:([^\s]+)/) {
         $line = "$1 adrp$2, ${3}\@PAGE\n";
-    } elsif ($line =~ /(.*)\s*add([\w\s\d]+)\s*,([\w\s\d]+)\s*,\s*#:lo12:([^\s]+)/) {
+    } elsif ($line =~ /(.*)\s*add([\w\s\d]+)\s*,([\w\s\d]+)\s*,\s*#?:lo12:([^\s]+)/) {
         $line = "$1 add$2, $3, ${4}\@PAGEOFF\n";
     }
 
@@ -776,9 +783,18 @@ sub handle_serialized_line {
         if ($line =~ /^\s*movi\s+(v[0-3]?\d\.(?:2|4|8)[hsHS])\s*,\s*(#\w+)\b\s*$/) {
             $line = "        movi $1, $2, lsl #0\n";
         }
-        # Xcode 5 misses the alias uxtl replace it with the more general ushll
-        if ($line =~ /^\s*uxtl(2)?\s+(v[0-3]?\d\.[248][hsdHSD])\s*,\s*(v[0-3]?\d\.(?:4|8|16)[bhsBHS])\b\s*$/) {
-            $line = "        ushll$1 $2, $3, #0\n";
+        # Xcode 5 misses the alias uxtl. Replace it with the more general ushll.
+        # Clang 3.4 misses the alias sxtl too. Replace it with the more general sshll.
+        if ($line =~ /^\s*(s|u)xtl(2)?\s+(v[0-3]?\d\.[248][hsdHSD])\s*,\s*(v[0-3]?\d\.(?:2|4|8|16)[bhsBHS])\b\s*$/) {
+            $line = "        $1shll$2 $3, $4, #0\n";
+        }
+        # clang 3.4 does not automatically use shifted immediates in add/sub
+        if ($as_type eq "clang" and
+            $line =~ /^(\s*(?:add|sub)s?) ([^#l]+)#([\d\+\-\*\/ <>]+)\s*$/) {
+            my $imm = eval $3;
+            if ($imm > 4095 and not ($imm & 4095)) {
+                $line = "$1 $2#" . ($imm >> 12) . ", lsl #12\n";
+            }
         }
         if ($ENV{GASPP_FIX_XCODE5}) {
             if ($line =~ /^\s*bsl\b/) {
@@ -788,6 +804,10 @@ sub handle_serialized_line {
             if ($line =~ /^\s*saddl2?\b/) {
                 $line =~ s/\b(saddl2?)(\s+v[0-3]?\d\.(\w+))\b/$1.$3$2/;
                 $line =~ s/\b(v[0-3]?\d)\.\w+\b/$1/g;
+            }
+            if ($line =~ /^\s*dup\b.*\]$/) {
+                $line =~ s/\bdup(\s+v[0-3]?\d)\.(\w+)\b/dup.$2$1/g;
+                $line =~ s/\b(v[0-3]?\d)\.[bhsdBHSD](\[\d\])$/$1$2/g;
             }
         }
     }
