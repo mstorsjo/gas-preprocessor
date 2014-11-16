@@ -16,7 +16,7 @@ my %canonical_arch = ("aarch64" => "aarch64", "arm64" => "aarch64",
 
 my %comments = ("aarch64" => '//',
                 "arm"     => '@',
-                "ppc"     => '#');
+                "ppc"     => '#',
                 "powerpc" => '#');
 
 my @gcc_cmd;
