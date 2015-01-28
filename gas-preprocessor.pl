@@ -67,7 +67,7 @@ while (@ARGV) {
         die "unknown arch: '$arch'\n" if not exists $comments{$arch};
     } elsif ($opt eq "-as-type") {
         $as_type = shift;
-        die "unknown as type: '$as_type'\n" if $as_type !~ /^((apple-)?(gas|clang)|armasm)$/;
+        die "unknown as type: '$as_type'\n" if $as_type !~ /^((apple-)?(gas|clang|llvm_gcc)|armasm)$/;
     } elsif ($opt eq "-help") {
         usage();
         exit 0;
