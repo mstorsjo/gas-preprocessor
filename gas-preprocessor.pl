@@ -295,12 +295,11 @@ while (<INPUT>) {
     s/\r$//;
 
     foreach my $subline (split(";", $_)) {
-        # Add newlines at the end of lines that don't already have one
         chomp $subline;
-        $subline .= "\n";
-        parse_line($subline);
+        parse_line_continued($subline);
     }
 }
+parse_line_continued("");
 
 sub eval_expr {
     my $expr = $_[0];
@@ -381,6 +380,20 @@ sub parse_if_line {
         }
     }
     return 0;
+}
+
+my $last_line = "";
+sub parse_line_continued {
+    my $line = $_[0];
+    $last_line .= $line;
+    if ($last_line =~ /\\$/) {
+        $last_line =~ s/\\$//;
+    } else {
+        # Add newlines at the end of lines after concatenation.
+        $last_line .= "\n";
+        parse_line($last_line);
+        $last_line = "";
+    }
 }
 
 sub parse_line {
