@@ -163,6 +163,7 @@ if ($as_type ne "armasm") {
     @preprocess_c_cmd = grep ! /^-fp/, @preprocess_c_cmd;
     @preprocess_c_cmd = grep ! /^-EHsc$/, @preprocess_c_cmd;
     @preprocess_c_cmd = grep ! /^-O/, @preprocess_c_cmd;
+    @preprocess_c_cmd = grep ! /^-oldit/, @preprocess_c_cmd;
 
     @gcc_cmd = grep ! /^-G/, @gcc_cmd;
     @gcc_cmd = grep ! /^-W/, @gcc_cmd;
@@ -1168,6 +1169,10 @@ sub handle_serialized_line {
         $line =~ s/fmxr/vmsr/;
         $line =~ s/fmrx/vmrs/;
         $line =~ s/fadds/vadd.f32/;
+        # Armasm in VS 2019 16.3 errors out on "it" instructions. But
+        # armasm implicitly adds the necessary it instructions anyway, so we
+        # can just filter them out.
+        $line =~ s/^\s*it[te]*\s+/$comm$&/;
     }
     if ($as_type eq "armasm" and $arch eq "aarch64") {
         # Convert "b.eq" into "beq"
