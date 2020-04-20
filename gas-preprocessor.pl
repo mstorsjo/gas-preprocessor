@@ -164,6 +164,8 @@ if ($as_type ne "armasm") {
     @preprocess_c_cmd = grep ! /^-EHsc$/, @preprocess_c_cmd;
     @preprocess_c_cmd = grep ! /^-O/, @preprocess_c_cmd;
     @preprocess_c_cmd = grep ! /^-oldit/, @preprocess_c_cmd;
+    @preprocess_c_cmd = grep ! /^-FS/, @preprocess_c_cmd;
+    @preprocess_c_cmd = grep ! /^-w/, @preprocess_c_cmd;
 
     @gcc_cmd = grep ! /^-G/, @gcc_cmd;
     @gcc_cmd = grep ! /^-W/, @gcc_cmd;
@@ -171,6 +173,8 @@ if ($as_type ne "armasm") {
     @gcc_cmd = grep ! /^-fp/, @gcc_cmd;
     @gcc_cmd = grep ! /^-EHsc$/, @gcc_cmd;
     @gcc_cmd = grep ! /^-O/, @gcc_cmd;
+    @gcc_cmd = grep ! /^-FS/, @gcc_cmd;
+    @gcc_cmd = grep ! /^-w/, @gcc_cmd;
 
     my @outfiles = grep /\.(o|obj)$/, @gcc_cmd;
     $tempfile = $outfiles[0].".asm";
