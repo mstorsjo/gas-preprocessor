@@ -1087,7 +1087,7 @@ sub handle_serialized_line {
             }
 
             # Convert "ld1 {v0.4h-v3.4h}" into "ld1 {v0.4h,v1.4h,v2.4h,v3.4h}"
-            if ($line =~ /(?:ld|st)\d\s+(\{\s*v(\d+)\.(\d+[bhsdBHSD])\s*-\s*v(\d+)\.(\d+[bhsdBHSD])\s*\})/) {
+            if ($line =~ /(\{\s*v(\d+)\.(\d+[bhsdBHSD])\s*-\s*v(\d+)\.(\d+[bhsdBHSD])\s*\})/) {
                 my $regspec = $1;
                 my $reg1 = $2;
                 my $layout1 = $3;
