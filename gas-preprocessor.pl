@@ -158,6 +158,10 @@ while ($index < $#preprocess_c_cmd) {
 my $tempfile;
 if ($as_type ne "armasm") {
     @gcc_cmd = map { /\.[csS]$/ ? qw(-x assembler -) : $_ } @gcc_cmd;
+
+    # Filter out options that can cause warnings due to unused arguments,
+    # Clang warns about unused -D parameters when invoked with "-x assembler".
+    @gcc_cmd = grep ! /^-D/, @gcc_cmd;
 } else {
     @preprocess_c_cmd = grep ! /^-c$/, @preprocess_c_cmd;
     @preprocess_c_cmd = grep ! /^-m/, @preprocess_c_cmd;
