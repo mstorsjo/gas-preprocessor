@@ -333,7 +333,7 @@ sub handle_if {
             $expr =~ s/\s//g;
             $result ^= $expr eq "";
         } elsif ($type eq "c") {
-            if ($expr =~ /(.*)\s*,\s*(.*)/) {
+            if ($expr =~ /(\S*)\s*,\s*(\S*)/) {
                 $result ^= $1 eq $2;
             } else {
                 die "argument to .ifc not recognized";
