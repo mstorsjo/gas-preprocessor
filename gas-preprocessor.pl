@@ -738,7 +738,10 @@ sub handle_serialized_line {
     }
 
     # mach-o local symbol names start with L (no dot)
-    $line =~ s/(?<!\w)\.(L\w+)/$1/g;
+    # armasm also can't handle labels that start with a dot.
+    if ($as_type =~ /apple-/ or $as_type eq "armasm") {
+        $line =~ s/(?<!\w)\.(L\w+)/$1/g;
+    }
 
     # recycle the '.func' directive for '.thumb_func'
     if ($thumb and $as_type =~ /^apple-/) {
