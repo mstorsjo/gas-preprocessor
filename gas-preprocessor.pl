@@ -471,10 +471,19 @@ sub parse_line {
 sub handle_set {
     my $line = $_[0];
     if ($line =~ /\.(?:set|equ)\s+(\S*)\s*,\s*(.*)/) {
-        $symbols{$1} = eval_expr($2);
-        return 1;
+        my $sym = $1;
+        my $expr = $2;
+        my $value = eval_expr($expr);
+        if ($value eq "" and $as_type eq "armasm") {
+            return "$sym EQU $expr\n";
+        } else {
+            $symbols{$sym} = eval_expr($expr);
+        }
+        if ($as_type eq "armasm") {
+            return "";
+        }
     }
-    return 0;
+    return $line;
 }
 
 sub expand_macros {
@@ -505,8 +514,7 @@ sub expand_macros {
 
     $line =~ s/\%([^,]*)/eval_expr($1)/eg if $altmacro;
 
-    # Strip out the .set lines from the armasm output
-    return if (handle_set($line) and $as_type eq "armasm");
+    $line = handle_set($line);
 
     if ($line =~ /\.rept\s+(.*)/) {
         $num_repts = $1;
@@ -911,9 +919,9 @@ sub handle_serialized_line {
             # labels must not be declared multiple times.
             return if (defined $labels_seen{$1});
             $labels_seen{$1} = 1;
-        } elsif ($line !~ /(\w+) PROC/) {
-            # If not a label, make sure the line starts with whitespace,
-            # otherwise ms armasm interprets it incorrectly.
+        } elsif ($line !~ /(\w+) PROC/ and $line !~ /(\w+) EQU/) {
+            # If not a label and not an EQU alias, make sure the line starts
+            # with whitespace, otherwise ms armasm interprets it incorrectly.
             $line =~ s/^[\.\w]/\t$&/;
         }
 
