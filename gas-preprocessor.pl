@@ -289,6 +289,9 @@ my %aarch64_req_alias;
 if ($force_thumb) {
     parse_line(".thumb\n");
 }
+if ($as_type eq "armasm") {
+    parse_line(".text\n");
+}
 
 # pass 1: parse .macro
 # note that the handling of arguments is probably overly permissive vs. gas
