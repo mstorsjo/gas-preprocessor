@@ -958,7 +958,7 @@ sub handle_serialized_line {
                 $xreg =~ s/w/x/;
                 $line =~ s/\b$reg\b/$xreg/;
             }
-        } elsif ($line =~ /^\s*.h?word.*\b\d+[bf]\b/) {
+        } elsif ($line =~ /^\s*.([hxd]?word|quad).*\b\d+[bf]\b/) {
             while ($line =~ /\b(\d+)([bf])\b/g) {
                 $line = handle_local_label($line, $1, $2);
             }
