@@ -1169,6 +1169,8 @@ sub handle_serialized_line {
     $line =~ s/\.syntax/$comm$&/x      if $as_type =~ /armasm/;
 
     $line =~ s/\.hword/.short/x;
+    $line =~ s/\.xword/.quad/x;
+    $line =~ s/\.dword/.quad/x;
 
     if ($as_type =~ /^apple-/) {
         # the syntax for these is a little different
