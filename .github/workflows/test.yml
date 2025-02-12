@@ -5,7 +5,7 @@ on:
 
 jobs:
   ffmpeg-gcc:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04-arm
     strategy:
       fail-fast: false
       matrix:
@@ -23,18 +23,21 @@ jobs:
           repository: ffmpeg/ffmpeg
           ref: e30369bc1c683aeab6ea74bc37b4ae77b03f79b5
           path: ffmpeg
+      - name: Install armv7 runtime and compilers
+        if: ${{matrix.arch == 'armv7'}}
+        run: |
+          sudo dpkg --add-architecture armhf
+          sudo apt-get update && sudo apt-get install -y gcc-${{matrix.triple}} libc6:armhf libstdc++6:armhf
       - name: Build and test checkasm
         run: |
-          sudo apt-get update && sudo apt-get install -y gcc-${{matrix.triple}} qemu-user
           mkdir build
           cd build
           export PATH=$(pwd)/../gas-preprocessor:$PATH
-          export QEMU_LD_PREFIX=/usr/${{matrix.triple}}
-          ../ffmpeg/configure --arch=${{matrix.arch}} --target-os=linux --cross-prefix=${{matrix.triple}}- --enable-gpl --as="gas-preprocessor.pl -arch ${{matrix.gaspp_arch}} -as-type gas ${{matrix.triple}}-gcc"
+          ../ffmpeg/configure --arch=${{matrix.arch}} --target-os=linux ${{ (matrix.arch == 'armv7') && format('--cross-prefix={0}-', matrix.triple) || '' }} --enable-gpl --as="gas-preprocessor.pl -arch ${{matrix.gaspp_arch}} -as-type gas ${{ (matrix.arch == 'armv7') && format('{0}-gcc', matrix.triple) || 'gcc' }}"
           make -j$(nproc) run-checkasm
 
   ffmpeg-clang:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04-arm
     strategy:
       fail-fast: false
       matrix:
@@ -52,18 +55,25 @@ jobs:
           repository: ffmpeg/ffmpeg
           ref: e30369bc1c683aeab6ea74bc37b4ae77b03f79b5
           path: ffmpeg
+      - name: Install clang
+        run: |
+          sudo apt-get update && sudo apt-get install -y clang
+      - name: Install armv7 runtime and compilers
+        if: ${{matrix.arch == 'armv7'}}
+        run: |
+          sudo dpkg --add-architecture armhf
+          sudo apt-get update && sudo apt-get install -y gcc-${{matrix.triple}} libc6:armhf libstdc++6:armhf
       - name: Build and test checkasm
         run: |
-          sudo apt-get update && sudo apt-get install -y gcc-${{matrix.triple}} qemu-user clang
           mkdir build
           cd build
           export PATH=$(pwd)/../gas-preprocessor:$PATH
-          export QEMU_LD_PREFIX=/usr/${{matrix.triple}}
-          ../ffmpeg/configure --arch=${{matrix.arch}} --target-os=linux --cross-prefix=${{matrix.triple}}- --enable-gpl --cc="clang -target ${{matrix.clang_triple}} -B /usr/bin/${{matrix.triple}}-" --as="gas-preprocessor.pl -arch ${{matrix.gaspp_arch}} -as-type clang clang -target ${{matrix.clang_triple}}"
+          ../ffmpeg/configure --arch=${{matrix.arch}} --target-os=linux ${{ (matrix.arch == 'armv7') && format('--cross-prefix={0}-', matrix.triple) || '' }} --enable-gpl --cc="clang ${{ (matrix.arch == 'armv7') && format('-target {0} -B /usr/bin/{1}-', matrix.clang_triple, matrix.triple) || '' }}" --as="gas-preprocessor.pl -arch ${{matrix.gaspp_arch}} -as-type clang clang ${{ (matrix.arch == 'armv7') && format('-target {0}', matrix.clang_triple) || '' }}"
           make -j$(nproc) run-checkasm
 
   ffmpeg-msvc-wine:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04-arm
+    container: ghcr.io/mstorsjo/wine
     strategy:
       fail-fast: false
       matrix:
@@ -79,7 +89,7 @@ jobs:
           path: msvc-wine
       - name: Install msvc-wine
         run: |
-          sudo apt-get update && sudo apt-get install -y --no-install-recommends wine python3 msitools ca-certificates winbind
+          apt-get update && apt-get install -y --no-install-recommends python3 msitools ca-certificates winbind
           wine wineboot
           msvc-wine/vsdownload.py --accept-license --dest /opt/msvc --sdk-version ${{matrix.sdk}}
           msvc-wine/install.sh /opt/msvc
@@ -98,13 +108,12 @@ jobs:
           mkdir build
           cd build
           export PATH=$(pwd)/../gas-preprocessor:/opt/msvc/bin/${{matrix.arch}}:$PATH
-          ../ffmpeg/configure --arch=${{matrix.arch}} --target-os=win32 --toolchain=msvc --enable-cross-compile --enable-gpl
+          ../ffmpeg/configure --arch=${{matrix.arch}} --target-os=win32 --toolchain=msvc --enable-cross-compile --enable-gpl --target-exec=wine
           make -j$(nproc) checkasm
       - name: Test checkasm
-        if: ${{matrix.arch == 'arm64'}}
         run: |
           cd build
-          docker run --rm -v $(pwd):/host linaro/wine-arm64 wine-arm64 /host/tests/checkasm/checkasm.exe
+          make -j$(nproc) run-checkasm
 
   ffmpeg-msvc:
     runs-on: windows-latest
@@ -209,14 +218,14 @@ jobs:
           ninja
 
   dav1d-msvc-wine:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04-arm
     strategy:
       fail-fast: false
       matrix:
         include:
           - { arch: arm, sdk: 10.0.22621 } # The newer SDK doesn't inclue ARM
           - { arch: arm64, sdk: 10.0.26100 } # The older SDK doesn't have flags for detecting modern aarch64 extensions
-    container: linaro/wine-arm64
+    container: ghcr.io/mstorsjo/wine
     steps:
       - name: Checkout msvc-wine
         uses: actions/checkout@v4
@@ -225,18 +234,11 @@ jobs:
           ref: 49ae4b63f350770584469317e3995d100d4dcd39
           path: msvc-wine
       - name: Install msvc-wine
-        env:
-          WINEPREFIX: /tmp/wine-x64-prefix
         run: |
-          apt-get update && apt-get install -y --no-install-recommends wine python3 msitools ca-certificates ninja-build winbind meson
+          apt-get update && apt-get install -y --no-install-recommends python3 msitools ca-certificates ninja-build winbind meson
           wine wineboot
           cd msvc-wine
           ./vsdownload.py --accept-license --dest /opt/msvc --sdk ${{matrix.sdk}}
-          echo "#!/bin/bash" > wrappers/wine-msvc-new.sh
-          echo "export WINEPREFIX=/tmp/wine-x64-prefix" >> wrappers/wine-msvc-new.sh
-          cat wrappers/wine-msvc.sh >> wrappers/wine-msvc-new.sh
-          chmod a+x wrappers/wine-msvc-new.sh
-          mv wrappers/wine-msvc-new.sh wrappers/wine-msvc.sh
           ./install.sh /opt/msvc
       - name: Checkout dav1d
         uses: actions/checkout@v4
@@ -262,7 +264,6 @@ jobs:
           arm64)
               cpu=aarch64
               cpu_family=aarch64
-              exe_wrapper="exe_wrapper = ['wine-arm64']"
               ;;
           esac
           cat >cross.txt <<EOF
@@ -271,7 +272,7 @@ jobs:
           cpp = 'cl'
           ar = 'lib'
           windres = 'rc'
-          $exe_wrapper
+          exe_wrapper = ['wine']
 
           [properties]
           needs_exe_wrapper = true
@@ -288,14 +289,14 @@ jobs:
           meson test checkasm -v
 
   openh264-msvc-wine-meson:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04-arm
     strategy:
       fail-fast: false
       matrix:
         include:
           - { arch: arm, sdk: 10.0.22621 } # The newer SDK doesn't inclue ARM
           - { arch: arm64, sdk: 10.0.26100 } # The older SDK doesn't have flags for detecting modern aarch64 extensions
-    container: linaro/wine-arm64
+    container: ghcr.io/mstorsjo/wine
     steps:
       - name: Checkout msvc-wine
         uses: actions/checkout@v4
@@ -304,18 +305,11 @@ jobs:
           ref: 49ae4b63f350770584469317e3995d100d4dcd39
           path: msvc-wine
       - name: Install msvc-wine
-        env:
-          WINEPREFIX: /tmp/wine-x64-prefix
         run: |
-          apt-get update && apt-get install -y --no-install-recommends wine python3 msitools ca-certificates ninja-build winbind meson
+          apt-get update && apt-get install -y --no-install-recommends python3 msitools ca-certificates ninja-build winbind meson
           wine wineboot
           cd msvc-wine
           ./vsdownload.py --accept-license --dest /opt/msvc --sdk ${{matrix.sdk}}
-          echo "#!/bin/bash" > wrappers/wine-msvc-new.sh
-          echo "export WINEPREFIX=/tmp/wine-x64-prefix" >> wrappers/wine-msvc-new.sh
-          cat wrappers/wine-msvc.sh >> wrappers/wine-msvc-new.sh
-          chmod a+x wrappers/wine-msvc-new.sh
-          mv wrappers/wine-msvc-new.sh wrappers/wine-msvc.sh
           ./install.sh /opt/msvc
       - name: Checkout openh264
         uses: actions/checkout@v4
@@ -341,7 +335,6 @@ jobs:
           arm64)
               cpu=aarch64
               cpu_family=aarch64
-              exe_wrapper="exe_wrapper = ['wine-arm64']"
               ;;
           esac
           cat >cross.txt <<EOF
@@ -350,7 +343,7 @@ jobs:
           cpp = 'cl'
           ar = 'lib'
           windres = 'rc'
-          #$exe_wrapper
+          exe_wrapper = ['wine']
 
           [properties]
           needs_exe_wrapper = true
@@ -364,20 +357,17 @@ jobs:
 
           meson setup --cross-file cross.txt --buildtype release ..
           ninja
-          # Skip testing, these tests don't run well in wine-arm64 via
-          # meson, for some reason. ($exe_wrapper is commented out above,
-          # to avoid meson testing whether exe_wrapper works.)
-          #meson test -v -t 10
+          meson test -v -t 10
 
   openh264-msvc-wine-make:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04-arm
     strategy:
       fail-fast: false
       matrix:
         include:
           - { arch: arm, sdk: 10.0.22621 } # The newer SDK doesn't inclue ARM
           - { arch: arm64, sdk: 10.0.26100 } # The older SDK doesn't have flags for detecting modern aarch64 extensions
-    container: linaro/wine-arm64
+    container: ghcr.io/mstorsjo/wine
     steps:
       - name: Checkout msvc-wine
         uses: actions/checkout@v4
@@ -386,18 +376,11 @@ jobs:
           ref: 49ae4b63f350770584469317e3995d100d4dcd39
           path: msvc-wine
       - name: Install msvc-wine
-        env:
-          WINEPREFIX: /tmp/wine-x64-prefix
         run: |
-          apt-get update && apt-get install -y --no-install-recommends wine python3 msitools ca-certificates ninja-build winbind meson
+          apt-get update && apt-get install -y --no-install-recommends python3 msitools ca-certificates ninja-build winbind meson
           wine wineboot
           cd msvc-wine
           ./vsdownload.py --accept-license --dest /opt/msvc --sdk ${{matrix.sdk}}
-          echo "#!/bin/bash" > wrappers/wine-msvc-new.sh
-          echo "export WINEPREFIX=/tmp/wine-x64-prefix" >> wrappers/wine-msvc-new.sh
-          cat wrappers/wine-msvc.sh >> wrappers/wine-msvc-new.sh
-          chmod a+x wrappers/wine-msvc-new.sh
-          mv wrappers/wine-msvc-new.sh wrappers/wine-msvc.sh
           ./install.sh /opt/msvc
       - name: Checkout openh264
         uses: actions/checkout@v4
@@ -423,14 +406,13 @@ jobs:
 
           make -f ../Makefile V=0 OS=msvc ARCH=${{matrix.arch}} -j$(nproc)
       - name: Build
-        if: ${{matrix.arch == 'arm64'}}
         run: |
           cd builddir
-          wine-arm64 codec_unittest.exe
+          wine codec_unittest.exe
 
   openh264-llvm-mingw-meson:
-    runs-on: ubuntu-latest
-    container: linaro/wine-arm64
+    runs-on: ubuntu-24.04-arm
+    container: ghcr.io/mstorsjo/wine
     strategy:
       fail-fast: false
       matrix:
@@ -447,8 +429,8 @@ jobs:
           ref: c59550a2147c255cc8e09451f6deb96de2526b6d
       - name: Install llvm-mingw
         run: |
-          curl -LO https://github.com/mstorsjo/llvm-mingw/releases/download/20231128/llvm-mingw-20231128-ucrt-ubuntu-20.04-x86_64.tar.xz
-          tar -Jxf llvm-mingw-*-ucrt-ubuntu-*-x86_64.tar.xz
+          curl -LO https://github.com/mstorsjo/llvm-mingw/releases/download/20231128/llvm-mingw-20231128-ucrt-ubuntu-20.04-aarch64.tar.xz
+          tar -Jxf llvm-mingw-*-ucrt-ubuntu-*-aarch64.tar.xz
           rm llvm-mingw-*.tar.xz
           mv llvm-mingw-* /opt/llvm-mingw
           echo /opt/llvm-mingw/bin >> $GITHUB_PATH
@@ -470,7 +452,6 @@ jobs:
           aarch64)
               cpu=aarch64
               cpu_family=aarch64
-              exe_wrapper="exe_wrapper = ['wine-arm64']"
               ;;
           esac
           cat >cross.txt <<EOF
@@ -479,7 +460,7 @@ jobs:
           cpp = '${{matrix.arch}}-w64-mingw32-clang++'
           ar = '${{matrix.arch}}-w64-mingw32-ar'
           windres = '${{matrix.arch}}-w64-mingw32-windres'
-          $exe_wrapper
+          exe_wrapper = ['wine']
 
           [properties]
           cpp_link_args = ['-static-libgcc', '-static-libstdc++']
@@ -496,13 +477,11 @@ jobs:
 
           meson setup --cross-file cross.txt --buildtype release ..
           ninja
-          # Skip testing, these tests don't run well in wine-arm64 via
-          # meson, for some reason.
-          #meson test -v -t 10
+          meson test -v -t 10
 
   openh264-llvm-mingw-make:
-    runs-on: ubuntu-latest
-    container: linaro/wine-arm64
+    runs-on: ubuntu-24.04-arm
+    container: ghcr.io/mstorsjo/wine
     strategy:
       fail-fast: false
       matrix:
@@ -516,8 +495,8 @@ jobs:
           ref: c59550a2147c255cc8e09451f6deb96de2526b6d
       - name: Install llvm-mingw
         run: |
-          curl -LO https://github.com/mstorsjo/llvm-mingw/releases/download/20231128/llvm-mingw-20231128-ucrt-ubuntu-20.04-x86_64.tar.xz
-          tar -Jxf llvm-mingw-*-ucrt-ubuntu-*-x86_64.tar.xz
+          curl -LO https://github.com/mstorsjo/llvm-mingw/releases/download/20231128/llvm-mingw-20231128-ucrt-ubuntu-20.04-aarch64.tar.xz
+          tar -Jxf llvm-mingw-*-ucrt-ubuntu-*-aarch64.tar.xz
           rm llvm-mingw-*.tar.xz
           mv llvm-mingw-* /opt/llvm-mingw
           echo /opt/llvm-mingw/bin >> $GITHUB_PATH
@@ -537,14 +516,13 @@ jobs:
 
           make -f ../Makefile V=0 OS=mingw_nt ARCH=${{matrix.arch}} CC=${{matrix.arch}}-w64-mingw32-clang CXX=${{matrix.arch}}-w64-mingw32-clang++ AR=${{matrix.arch}}-w64-mingw32-ar LDFLAGS="-static-libgcc -static-libstdc++" -j$(nproc)
       - name: Test
-        if: ${{matrix.arch == 'aarch64'}}
         run: |
           cd builddir
-          wine-arm64 codec_unittest.exe
+          wine codec_unittest.exe
 
   x264-llvm-mingw:
-    runs-on: ubuntu-latest
-    container: linaro/wine-arm64
+    runs-on: ubuntu-24.04-arm
+    container: ghcr.io/mstorsjo/wine
     strategy:
       fail-fast: false
       matrix:
@@ -558,8 +536,8 @@ jobs:
           git checkout be4f0200ed007c466fd96185c39cde2a2d60ef50
       - name: Install llvm-mingw
         run: |
-          curl -LO https://github.com/mstorsjo/llvm-mingw/releases/download/20231128/llvm-mingw-20231128-ucrt-ubuntu-20.04-x86_64.tar.xz
-          tar -Jxf llvm-mingw-*-ucrt-ubuntu-*-x86_64.tar.xz
+          curl -LO https://github.com/mstorsjo/llvm-mingw/releases/download/20231128/llvm-mingw-20231128-ucrt-ubuntu-20.04-aarch64.tar.xz
+          tar -Jxf llvm-mingw-*-ucrt-ubuntu-*-aarch64.tar.xz
           rm llvm-mingw-*.tar.xz
           mv llvm-mingw-* /opt/llvm-mingw
           echo /opt/llvm-mingw/bin >> $GITHUB_PATH
@@ -578,14 +556,14 @@ jobs:
           ../x264/configure --host=${{matrix.arch}}-w64-mingw32 --cross-prefix=${{matrix.arch}}-w64-mingw32-
           make -j$(nproc) all checkasm
       - name: Test checkasm
-        if: ${{matrix.arch == 'aarch64'}}
         run: |
           cd build
-          wine-arm64 checkasm8.exe
-          wine-arm64 checkasm10.exe
+          wine checkasm8.exe
+          wine checkasm10.exe
 
   x264-msvc-wine:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04-arm
+    container: ghcr.io/mstorsjo/wine
     strategy:
       fail-fast: false
       matrix:
@@ -601,7 +579,7 @@ jobs:
           path: msvc-wine
       - name: Install msvc-wine
         run: |
-          sudo apt-get update && sudo apt-get install -y wine64 python3 msitools ca-certificates ninja-build winbind
+          sudo apt-get update && sudo apt-get install -y python3 msitools ca-certificates ninja-build winbind
           WINE=$(command -v wine64 || command -v wine || false)
           $WINE wineboot
           cd msvc-wine
