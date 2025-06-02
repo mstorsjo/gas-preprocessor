@@ -177,6 +177,7 @@ if ($as_type ne "armasm") {
     @preprocess_c_cmd = grep ! /^-FS/, @preprocess_c_cmd;
     @preprocess_c_cmd = grep ! /^-w/, @preprocess_c_cmd;
     @preprocess_c_cmd = grep ! /^-M/, @preprocess_c_cmd;
+    @preprocess_c_cmd = grep ! /^-g/, @preprocess_c_cmd;
 
     @gcc_cmd = grep ! /^-G/, @gcc_cmd;
     @gcc_cmd = grep ! /^-W/, @gcc_cmd;
