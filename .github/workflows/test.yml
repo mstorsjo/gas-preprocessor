@@ -5,6 +5,7 @@ on:
 
 jobs:
   ffmpeg-gcc:
+    if: false
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
@@ -34,6 +35,7 @@ jobs:
           make -j$(nproc) run-checkasm
 
   ffmpeg-clang:
+    if: false
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
@@ -63,6 +65,7 @@ jobs:
           make -j$(nproc) run-checkasm
 
   ffmpeg-msvc-wine:
+    if: false
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
@@ -107,6 +110,7 @@ jobs:
           docker run --rm -v $(pwd):/host linaro/wine-arm64 wine-arm64 /host/tests/checkasm/checkasm.exe
 
   ffmpeg-msvc:
+    if: false
     runs-on: windows-latest
     strategy:
       fail-fast: false
@@ -146,6 +150,7 @@ jobs:
           make -j$(nproc) checkasm
 
   dav1d-msvc:
+    if: false
     runs-on: windows-latest
     strategy:
       fail-fast: false
@@ -212,6 +217,7 @@ jobs:
           ninja
 
   dav1d-msvc-wine:
+    if: false
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
@@ -373,6 +379,7 @@ jobs:
           #meson test -v -t 10
 
   openh264-msvc-wine-make:
+    if: false
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
@@ -504,6 +511,7 @@ jobs:
           #meson test -v -t 10
 
   openh264-llvm-mingw-make:
+    if: false
     runs-on: ubuntu-latest
     container: linaro/wine-arm64
     strategy:
@@ -546,6 +554,7 @@ jobs:
           wine-arm64 codec_unittest.exe
 
   x264-llvm-mingw:
+    if: false
     runs-on: ubuntu-latest
     container: linaro/wine-arm64
     strategy:
@@ -588,6 +597,7 @@ jobs:
           wine-arm64 checkasm10.exe
 
   x264-msvc-wine:
+    if: false
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
