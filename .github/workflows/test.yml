@@ -446,6 +446,7 @@ jobs:
       matrix:
         arch:
           - armv7
+          - aarch64
     steps:
       - name: Install prerequisites
         run: |
