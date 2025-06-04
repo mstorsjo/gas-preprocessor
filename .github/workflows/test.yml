@@ -359,7 +359,7 @@ jobs:
           cpp = 'cl'
           ar = 'lib'
           windres = 'rc'
-          #$exe_wrapper
+          $exe_wrapper
 
           [properties]
           needs_exe_wrapper = true
@@ -373,10 +373,7 @@ jobs:
 
           meson setup --cross-file cross.txt --buildtype release ..
           ninja
-          # Skip testing, these tests don't run well in wine-arm64 via
-          # meson, for some reason. ($exe_wrapper is commented out above,
-          # to avoid meson testing whether exe_wrapper works.)
-          #meson test -v -t 10
+          meson test -v -t 10
 
   openh264-msvc-wine-make:
     if: false
@@ -507,9 +504,7 @@ jobs:
 
           meson setup --cross-file cross.txt --buildtype release ..
           ninja
-          # Skip testing, these tests don't run well in wine-arm64 via
-          # meson, for some reason.
-          #meson test -v -t 10
+          meson test -v -t 10
 
   openh264-llvm-mingw-make:
     if: false
