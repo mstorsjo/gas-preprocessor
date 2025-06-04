@@ -355,7 +355,7 @@ jobs:
           endian = 'little'
           EOF
 
-          meson setup --cross-file cross.txt --buildtype release ..
+          meson setup --cross-file cross.txt --buildtype release -Db_vscrt=mt ..
           ninja
           meson test -v -t 10
 
