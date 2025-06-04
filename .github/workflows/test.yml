@@ -373,7 +373,8 @@ jobs:
 
           meson setup --cross-file cross.txt --buildtype release ..
           ninja
-          meson test -v -t 10
+          wine-arm64 wineboot
+          meson test -v
 
   openh264-msvc-wine-make:
     if: false
@@ -504,7 +505,8 @@ jobs:
 
           meson setup --cross-file cross.txt --buildtype release ..
           ninja
-          meson test -v -t 10
+          wine-arm64 wineboot
+          meson test -v
 
   openh264-llvm-mingw-make:
     if: false
