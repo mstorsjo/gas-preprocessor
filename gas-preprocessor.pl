@@ -188,6 +188,7 @@ if ($as_type ne "armasm") {
     @gcc_cmd = grep ! /^-Z/, @gcc_cmd;
     @gcc_cmd = grep ! /^-fp/, @gcc_cmd;
     @gcc_cmd = grep ! /^-EHsc$/, @gcc_cmd;
+    @gcc_cmd = grep ! /^-arm64EC$/, @gcc_cmd;
     @gcc_cmd = grep ! /^-O/, @gcc_cmd;
     @gcc_cmd = grep ! /^-FS/, @gcc_cmd;
     @gcc_cmd = grep ! /^-w/, @gcc_cmd;
