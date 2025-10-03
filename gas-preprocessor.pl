@@ -104,10 +104,14 @@ if ($as_type eq "armasm") {
 
     $preprocess_c_cmd[0] = "cpp";
 
-    # Remove -ignore XX parameter pairs from preprocess_c_cmd
+    # Remove -ignore XX and -machine XX parameter pairs from preprocess_c_cmd
     my $index = 1;
     while ($index < $#preprocess_c_cmd) {
         if ($preprocess_c_cmd[$index] eq "-ignore" and $index + 1 < $#preprocess_c_cmd) {
+            splice(@preprocess_c_cmd, $index, 2);
+            next;
+        }
+        if ($preprocess_c_cmd[$index] eq "-machine" and $index + 1 < $#preprocess_c_cmd) {
             splice(@preprocess_c_cmd, $index, 2);
             next;
         }
@@ -195,7 +199,8 @@ if ($as_type ne "armasm") {
     # which doesn't support any of the common compiler/preprocessor options.
     @gcc_cmd = grep ! /^-D/, @gcc_cmd;
     @gcc_cmd = grep ! /^-U/, @gcc_cmd;
-    @gcc_cmd = grep ! /^-m/, @gcc_cmd;
+    # Remove -m* parameters, except for -machine, which is a valid armasm option.
+    @gcc_cmd = grep ! /^-m(?!achine)/, @gcc_cmd;
     @gcc_cmd = grep ! /^-M/, @gcc_cmd;
     @gcc_cmd = grep ! /^-c$/, @gcc_cmd;
     @gcc_cmd = grep ! /^-I/, @gcc_cmd;
