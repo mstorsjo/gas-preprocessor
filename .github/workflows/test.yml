@@ -112,13 +112,11 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - { arch: arm, sdk: 10.0.22621.0 } # The newer SDK doesn't inclue ARM
           - { arch: arm64 }
     steps:
       - name: Set up the environment
         uses: ilammy/msvc-dev-cmd@v1
         with:
-          sdk: ${{matrix.sdk}}
           arch: amd64_${{matrix.arch}}
       - name: Checkout gas-preprocessor
         uses: actions/checkout@v4
@@ -151,7 +149,6 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - { arch: amd64_arm, sdk: 10.0.22621.0 } # The newer SDK doesn't inclue ARM
           - { arch: amd64_arm64 }
     steps:
       - name: Install prerequisites
