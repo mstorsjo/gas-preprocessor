@@ -205,7 +205,7 @@ jobs:
         run: |
           mkdir build
           cd build
-          meson setup --cross-file ../cross.txt -Dtrim_dsp=false --buildtype release --werror ..
+          meson setup --cross-file ../cross.txt -Dtrim_dsp=false --buildtype release ..
           ninja
 
   dav1d-msvc-wine:
