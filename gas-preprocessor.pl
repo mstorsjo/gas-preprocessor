@@ -1209,6 +1209,7 @@ sub handle_serialized_line {
         $line =~ s/\.text/AREA |.text|, CODE, READONLY, ALIGN=4, CODEALIGN/;
         $line =~ s/(\s*)(.*)\.ro?data(\s*,\s*"\w+")?/$1AREA |.rdata|, DATA, READONLY, ALIGN=5/;
         $line =~ s/\.data/AREA |.data|, DATA, ALIGN=5/;
+        $line =~ s/\.section(.*)\.drectve(\s*,\s*"\w+")?/$1AREA |.drectve|, DRECTVE, ALIGN=0/;
     }
     if ($as_type eq "armasm" and $arch eq "arm") {
         $line =~ s/fmxr/vmsr/;
