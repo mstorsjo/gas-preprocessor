@@ -1194,6 +1194,13 @@ sub handle_serialized_line {
     if ($as_type eq "armasm") {
         $line =~ s/\.global/EXPORT/x;
         $line =~ s/\.extern/IMPORT/x;
+        if ($thumb) {
+            # Translate .inst into a 16 bit thumb instruction word
+            $line =~ s/\.inst/dcw/x;
+        } else {
+            # Translate .inst into a full 32 bit word
+            $line =~ s/\.inst/dcd/x;
+        }
         $line =~ s/\.int/dcd/x;
         $line =~ s/\.long/dcd/x;
         $line =~ s/\.float/dcfs/x;
