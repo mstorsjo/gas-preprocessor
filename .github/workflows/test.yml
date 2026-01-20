@@ -71,7 +71,8 @@ jobs:
           make -j$(nproc) run-checkasm
 
   ffmpeg-msvc-wine:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04-arm
+    container: ghcr.io/mstorsjo/wine
     strategy:
       fail-fast: false
       matrix:
@@ -87,7 +88,7 @@ jobs:
           path: msvc-wine
       - name: Install msvc-wine
         run: |
-          sudo apt-get update && sudo apt-get install -y --no-install-recommends wine python3 msitools ca-certificates winbind
+          sudo apt-get update && sudo apt-get install -y --no-install-recommends python3 msitools ca-certificates winbind
           wine wineboot
           msvc-wine/vsdownload.py --accept-license --dest /opt/msvc --sdk-version ${{matrix.sdk}}
           msvc-wine/install.sh /opt/msvc
@@ -101,18 +102,14 @@ jobs:
           repository: ffmpeg/ffmpeg
           ref: e30369bc1c683aeab6ea74bc37b4ae77b03f79b5
           path: ffmpeg
-      - name: Build
+      - name: Build and test checkasm
         run: |
           mkdir build
           cd build
           export PATH=$(pwd)/../gas-preprocessor:/opt/msvc/bin/${{matrix.arch}}:$PATH
-          ../ffmpeg/configure --arch=${{matrix.arch}} --target-os=win32 --toolchain=msvc --enable-cross-compile --enable-gpl
+          ../ffmpeg/configure --arch=${{matrix.arch}} --target-os=win32 --toolchain=msvc --enable-cross-compile --enable-gpl --target-exec=wine
           make -j$(nproc) checkasm
-      - name: Test checkasm
-        if: ${{matrix.arch == 'arm64'}}
-        run: |
-          cd build
-          docker run --rm -v $(pwd):/host linaro/wine-arm64 wine-arm64 /host/tests/checkasm/checkasm.exe
+          make -j$(nproc) run-checkasm
 
   ffmpeg-msvc:
     runs-on: windows-latest
