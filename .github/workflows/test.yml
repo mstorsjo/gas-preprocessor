@@ -583,7 +583,8 @@ jobs:
           wine checkasm10.exe
 
   x264-msvc-wine:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04-arm
+    container: ghcr.io/mstorsjo/wine
     strategy:
       fail-fast: false
       matrix:
@@ -599,7 +600,7 @@ jobs:
           path: msvc-wine
       - name: Install msvc-wine
         run: |
-          sudo apt-get update && sudo apt-get install -y wine64 python3 msitools ca-certificates ninja-build winbind
+          sudo apt-get update && sudo apt-get install -y python3 msitools ca-certificates ninja-build winbind
           WINE=$(command -v wine64 || command -v wine || false)
           $WINE wineboot
           cd msvc-wine
