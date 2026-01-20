@@ -541,8 +541,8 @@ jobs:
           wine-arm64 codec_unittest.exe
 
   x264-llvm-mingw:
-    runs-on: ubuntu-latest
-    container: linaro/wine-arm64
+    runs-on: ubuntu-24.04-arm
+    container: ghcr.io/mstorsjo/wine
     strategy:
       fail-fast: false
       matrix:
@@ -556,8 +556,8 @@ jobs:
           git checkout be4f0200ed007c466fd96185c39cde2a2d60ef50
       - name: Install llvm-mingw
         run: |
-          curl -LO https://github.com/mstorsjo/llvm-mingw/releases/download/20231128/llvm-mingw-20231128-ucrt-ubuntu-20.04-x86_64.tar.xz
-          tar -Jxf llvm-mingw-*-ucrt-ubuntu-*-x86_64.tar.xz
+          curl -LO https://github.com/mstorsjo/llvm-mingw/releases/download/20231128/llvm-mingw-20231128-ucrt-ubuntu-20.04-aarch64.tar.xz
+          tar -Jxf llvm-mingw-*-ucrt-ubuntu-*-aarch64.tar.xz
           rm llvm-mingw-*.tar.xz
           mv llvm-mingw-* /opt/llvm-mingw
           echo /opt/llvm-mingw/bin >> $GITHUB_PATH
@@ -576,11 +576,10 @@ jobs:
           ../x264/configure --host=${{matrix.arch}}-w64-mingw32 --cross-prefix=${{matrix.arch}}-w64-mingw32-
           make -j$(nproc) all checkasm
       - name: Test checkasm
-        if: ${{matrix.arch == 'aarch64'}}
         run: |
           cd build
-          wine-arm64 checkasm8.exe
-          wine-arm64 checkasm10.exe
+          wine checkasm8.exe
+          wine checkasm10.exe
 
   x264-msvc-wine:
     runs-on: ubuntu-latest
