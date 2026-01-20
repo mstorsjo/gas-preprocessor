@@ -548,6 +548,7 @@ jobs:
       matrix:
         arch:
           - armv7
+          - aarch64
     steps:
       - name: Checkout x264
         run: |
