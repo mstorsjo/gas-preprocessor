@@ -150,12 +150,12 @@ jobs:
           make -j$(nproc) run-checkasm
 
   dav1d-msvc:
-    runs-on: windows-latest
+    runs-on: windows-11-arm
     strategy:
       fail-fast: false
       matrix:
         include:
-          - { arch: amd64_arm64 }
+          - { arch: arm64 }
     steps:
       - name: Install prerequisites
         run: |
@@ -163,7 +163,6 @@ jobs:
       - name: Set up the environment
         uses: ilammy/msvc-dev-cmd@v1
         with:
-          sdk: ${{matrix.sdk}}
           arch: ${{matrix.arch}}
       - name: Checkout dav1d
         uses: actions/checkout@v4
@@ -182,11 +181,11 @@ jobs:
         run: |
           arch=${{matrix.arch}}
           case $arch in
-          *_arm)
+          arm)
               cpu=armv7
               cpu_family=arm
               ;;
-          *_arm64)
+          arm64)
               cpu=aarch64
               cpu_family=aarch64
               ;;
@@ -213,6 +212,7 @@ jobs:
           cd build
           meson setup --cross-file ../cross.txt -Dtrim_dsp=false --buildtype release ..
           ninja
+          meson test checkasm -v
 
   dav1d-msvc-wine:
     runs-on: ubuntu-latest
