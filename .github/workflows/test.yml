@@ -5,7 +5,7 @@ on:
 
 jobs:
   ffmpeg-gcc:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04-arm
     strategy:
       fail-fast: false
       matrix:
@@ -23,18 +23,22 @@ jobs:
           repository: ffmpeg/ffmpeg
           ref: e30369bc1c683aeab6ea74bc37b4ae77b03f79b5
           path: ffmpeg
+      - name: Set up armv7 runtimes
+        if: matrix.arch == 'armv7'
+        run: |
+          sudo dpkg --add-architecture armhf
+          sudo apt-get update && sudo apt-get install libc6:armhf
       - name: Build and test checkasm
         run: |
-          sudo apt-get update && sudo apt-get install -y gcc-${{matrix.triple}} qemu-user
+          sudo apt-get update && sudo apt-get install -y gcc-${{matrix.triple}}
           mkdir build
           cd build
           export PATH=$(pwd)/../gas-preprocessor:$PATH
-          export QEMU_LD_PREFIX=/usr/${{matrix.triple}}
           ../ffmpeg/configure --arch=${{matrix.arch}} --target-os=linux --cross-prefix=${{matrix.triple}}- --enable-gpl --as="gas-preprocessor.pl -arch ${{matrix.gaspp_arch}} -as-type gas ${{matrix.triple}}-gcc"
           make -j$(nproc) run-checkasm
 
   ffmpeg-clang:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04-arm
     strategy:
       fail-fast: false
       matrix:
@@ -52,13 +56,17 @@ jobs:
           repository: ffmpeg/ffmpeg
           ref: e30369bc1c683aeab6ea74bc37b4ae77b03f79b5
           path: ffmpeg
+      - name: Set up armv7 runtimes
+        if: matrix.arch == 'armv7'
+        run: |
+          sudo dpkg --add-architecture armhf
+          sudo apt-get update && sudo apt-get install libc6:armhf
       - name: Build and test checkasm
         run: |
-          sudo apt-get update && sudo apt-get install -y gcc-${{matrix.triple}} qemu-user clang
+          sudo apt-get update && sudo apt-get install -y gcc-${{matrix.triple}} clang
           mkdir build
           cd build
           export PATH=$(pwd)/../gas-preprocessor:$PATH
-          export QEMU_LD_PREFIX=/usr/${{matrix.triple}}
           ../ffmpeg/configure --arch=${{matrix.arch}} --target-os=linux --cross-prefix=${{matrix.triple}}- --enable-gpl --cc="clang -target ${{matrix.clang_triple}} -B /usr/bin/${{matrix.triple}}-" --as="gas-preprocessor.pl -arch ${{matrix.gaspp_arch}} -as-type clang clang -target ${{matrix.clang_triple}}"
           make -j$(nproc) run-checkasm
 
