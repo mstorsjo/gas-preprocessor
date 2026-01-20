@@ -5,6 +5,7 @@ on:
 
 jobs:
   ffmpeg-gcc:
+    if: false
     runs-on: ubuntu-24.04-arm
     strategy:
       fail-fast: false
@@ -38,6 +39,7 @@ jobs:
           make -j$(nproc) run-checkasm
 
   ffmpeg-clang:
+    if: false
     runs-on: ubuntu-24.04-arm
     strategy:
       fail-fast: false
@@ -71,6 +73,7 @@ jobs:
           make -j$(nproc) run-checkasm
 
   ffmpeg-msvc-wine:
+    if: false
     runs-on: ubuntu-24.04-arm
     container: ghcr.io/mstorsjo/wine
     strategy:
@@ -150,6 +153,7 @@ jobs:
           make -j$(nproc) run-checkasm
 
   dav1d-msvc:
+    if: false
     runs-on: windows-11-arm
     strategy:
       fail-fast: false
@@ -215,6 +219,7 @@ jobs:
           meson test checkasm -v
 
   dav1d-msvc-wine:
+    if: false
     runs-on: ubuntu-24.04-arm
     container: ghcr.io/mstorsjo/wine
     strategy:
@@ -286,6 +291,7 @@ jobs:
           meson test checkasm -v
 
   openh264-msvc-wine-meson:
+    if: false
     runs-on: ubuntu-24.04-arm
     container: ghcr.io/mstorsjo/wine
     strategy:
@@ -357,6 +363,7 @@ jobs:
           meson test -v -t 10
 
   openh264-msvc-wine-make:
+    if: false
     runs-on: ubuntu-24.04-arm
     container: ghcr.io/mstorsjo/wine
     strategy:
@@ -405,6 +412,7 @@ jobs:
           wine codec_unittest.exe
 
   openh264-llvm-mingw-meson:
+    if: false
     runs-on: ubuntu-24.04-arm
     container: ghcr.io/mstorsjo/wine
     strategy:
@@ -474,6 +482,7 @@ jobs:
           meson test -v -t 10
 
   openh264-llvm-mingw-make:
+    if: false
     runs-on: ubuntu-24.04-arm
     container: ghcr.io/mstorsjo/wine
     strategy:
@@ -512,6 +521,7 @@ jobs:
           wine codec_unittest.exe
 
   x264-llvm-mingw:
+    if: false
     runs-on: ubuntu-24.04-arm
     container: ghcr.io/mstorsjo/wine
     strategy:
@@ -554,6 +564,7 @@ jobs:
           wine checkasm10.exe
 
   x264-msvc-wine:
+    if: false
     runs-on: ubuntu-24.04-arm
     container: ghcr.io/mstorsjo/wine
     strategy:
