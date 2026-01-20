@@ -215,14 +215,14 @@ jobs:
           meson test checkasm -v
 
   dav1d-msvc-wine:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04-arm
+    container: ghcr.io/mstorsjo/wine
     strategy:
       fail-fast: false
       matrix:
         include:
           - { arch: arm, sdk: 10.0.22621 } # The newer SDK doesn't inclue ARM
           - { arch: arm64, sdk: 10.0.26100 } # The older SDK doesn't have flags for detecting modern aarch64 extensions
-    container: linaro/wine-arm64
     steps:
       - name: Checkout msvc-wine
         uses: actions/checkout@v4
@@ -231,18 +231,11 @@ jobs:
           ref: 49ae4b63f350770584469317e3995d100d4dcd39
           path: msvc-wine
       - name: Install msvc-wine
-        env:
-          WINEPREFIX: /tmp/wine-x64-prefix
         run: |
-          apt-get update && apt-get install -y --no-install-recommends wine python3 msitools ca-certificates ninja-build winbind meson
+          apt-get update && apt-get install -y --no-install-recommends python3 msitools ca-certificates ninja-build winbind meson
           wine wineboot
           cd msvc-wine
           ./vsdownload.py --accept-license --dest /opt/msvc --sdk ${{matrix.sdk}}
-          echo "#!/bin/bash" > wrappers/wine-msvc-new.sh
-          echo "export WINEPREFIX=/tmp/wine-x64-prefix" >> wrappers/wine-msvc-new.sh
-          cat wrappers/wine-msvc.sh >> wrappers/wine-msvc-new.sh
-          chmod a+x wrappers/wine-msvc-new.sh
-          mv wrappers/wine-msvc-new.sh wrappers/wine-msvc.sh
           ./install.sh /opt/msvc
       - name: Checkout dav1d
         uses: actions/checkout@v4
@@ -253,7 +246,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           path: gas-preprocessor
-      - name: Build (and test checkasm)
+      - name: Build and test checkasm
         run: |
           mkdir build
           cd build
@@ -268,7 +261,6 @@ jobs:
           arm64)
               cpu=aarch64
               cpu_family=aarch64
-              exe_wrapper="exe_wrapper = ['wine-arm64']"
               ;;
           esac
           cat >cross.txt <<EOF
@@ -277,7 +269,7 @@ jobs:
           cpp = 'cl'
           ar = 'lib'
           windres = 'rc'
-          $exe_wrapper
+          exe_wrapper = ['wine']
 
           [properties]
           needs_exe_wrapper = true
